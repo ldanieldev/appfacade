@@ -1,10 +1,12 @@
 package com.ldaniel.appfacade
 
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.WindowManager
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.widget.FrameLayout
@@ -99,6 +101,18 @@ class WebAppActivity : FragmentActivity() {
                 fileChooserCallback = callback
                 fileChooser.launch(params.createIntent())
                 true
+            },
+            onShowPopup = { view, onUserDismiss ->
+                val dialog = Dialog(this, android.R.style.Theme_DeviceDefault_NoActionBar)
+                dialog.setContentView(view)
+                dialog.window?.setLayout(
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                )
+                dialog.setOnCancelListener { onUserDismiss() }
+                dialog.show()
+                val close = { dialog.setOnCancelListener(null); dialog.dismiss() }
+                close
             },
         )
         renderer = r

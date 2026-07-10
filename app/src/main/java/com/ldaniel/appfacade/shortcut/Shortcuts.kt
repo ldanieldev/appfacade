@@ -49,15 +49,40 @@ object Shortcuts {
         return BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sample })
     }
 
-    /** Center the favicon in the adaptive safe zone on a white plate. */
+    /** Center the favicon in the adaptive safe zone on a plate sampled from the favicon. */
     private fun padForAdaptive(src: Bitmap): Bitmap {
         val out = Bitmap.createBitmap(ICON_SIZE, ICON_SIZE, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out)
-        canvas.drawColor(Color.WHITE)
+        canvas.drawColor(plateColor(src))
         val inner = (ICON_SIZE * SAFE_ZONE).toInt()
         val scaled = Bitmap.createScaledBitmap(src, inner, inner, true)
         val offset = (ICON_SIZE - inner) / 2f
         canvas.drawBitmap(scaled, offset, offset, null)
         return out
+    }
+
+    /** Plate color that blends with the favicon: opaque corners first, then overall tint. */
+    private fun plateColor(src: Bitmap): Int {
+        val corners = listOf(
+            src.getPixel(0, 0),
+            src.getPixel(src.width - 1, 0),
+            src.getPixel(0, src.height - 1),
+            src.getPixel(src.width - 1, src.height - 1),
+        )
+        averageOpaque(corners)?.let { return it }
+        // Transparent corners (floating logo): tint from the artwork itself.
+        val thumb = Bitmap.createScaledBitmap(src, 8, 8, true)
+        val pixels = IntArray(64).also { thumb.getPixels(it, 0, 8, 0, 0, 8, 8) }
+        return averageOpaque(pixels.toList()) ?: Color.WHITE
+    }
+
+    private fun averageOpaque(pixels: List<Int>): Int? {
+        val opaque = pixels.filter { Color.alpha(it) > 200 }
+        if (opaque.isEmpty()) return null
+        return Color.rgb(
+            opaque.map { Color.red(it) }.average().toInt(),
+            opaque.map { Color.green(it) }.average().toInt(),
+            opaque.map { Color.blue(it) }.average().toInt(),
+        )
     }
 }

@@ -18,6 +18,7 @@ import androidx.webkit.WebViewFeature
 class WebViewRenderer(
     private val onMainFrameError: (String) -> Unit,
     private val onShowFileChooser: ((ValueCallback<Array<Uri>>, WebChromeClient.FileChooserParams) -> Boolean)? = null,
+    private val onShowPopup: PopupPresenter? = null,
 ) : WebRenderer {
 
     private var webView: WebView? = null
@@ -28,6 +29,8 @@ class WebViewRenderer(
         wv.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
+            javaScriptCanOpenWindowsAutomatically = true
+            setSupportMultipleWindows(true)
         }
         wv.webViewClient = object : WebViewClient() {
             override fun onReceivedError(
@@ -44,6 +47,33 @@ class WebViewRenderer(
                 filePathCallback: ValueCallback<Array<Uri>>,
                 fileChooserParams: FileChooserParams,
             ): Boolean = onShowFileChooser?.invoke(filePathCallback, fileChooserParams) ?: false
+
+            @SuppressLint("SetJavaScriptEnabled")
+            override fun onCreateWindow(
+                view: WebView,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: android.os.Message,
+            ): Boolean {
+                val present = onShowPopup ?: return false
+                val popup = WebView(view.context)
+                popup.settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                }
+                popup.webViewClient = WebViewClient()
+                lateinit var close: () -> Unit
+                popup.webChromeClient = object : WebChromeClient() {
+                    override fun onCloseWindow(window: WebView) {
+                        close()               // dismiss the host dialog
+                        popup.destroy()
+                    }
+                }
+                close = present(popup) { popup.destroy() }   // user dismissed -> destroy
+                (resultMsg.obj as WebView.WebViewTransport).webView = popup
+                resultMsg.sendToTarget()
+                return true
+            }
         }
         webView = wv
     }

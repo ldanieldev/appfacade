@@ -24,6 +24,7 @@ self-hosted web UIs in mind, but it works with any http(s) URL.
 - **Icon & name autofill** — favicon and page title are fetched when you add
   a URL, with a letter-tile fallback
 - **File uploads** work inside the webview
+- **Popup logins** — window.open() popups (e.g. OAuth "Login with…" flows) open in an in-app window
 - Plain-HTTP URLs are allowed (intended for LAN/self-hosted use — traffic to
   `http://` URLs is unencrypted)
 
