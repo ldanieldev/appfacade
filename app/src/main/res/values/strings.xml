@@ -6,4 +6,5 @@
     <string name="unlock_title">Unlock %1$s</string>
     <string name="locked">Locked</string>
     <string name="unlock">Unlock</string>
+    <string name="shortcut_removed">Removed in AppFacade</string>
 </resources>
