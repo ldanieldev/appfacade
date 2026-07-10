@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import kotlin.math.abs
 
 object LetterIcon {
     private val palette = listOf(
@@ -14,7 +13,7 @@ object LetterIcon {
     fun letterFor(name: String): String =
         name.firstOrNull { it.isLetterOrDigit() }?.uppercase() ?: "?"
 
-    fun colorFor(name: String): Int = palette[abs(name.hashCode()) % palette.size]
+    fun colorFor(name: String): Int = palette[Math.floorMod(name.hashCode(), palette.size)]
 
     /** Device-only (android.graphics): not covered by JVM unit tests. */
     fun render(name: String, sizePx: Int): Bitmap {

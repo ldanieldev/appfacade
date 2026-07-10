@@ -21,4 +21,8 @@ class LetterIconTest {
 
     @Test fun `color is a valid opaque argb int`() =
         assertTrue(LetterIcon.colorFor("x") and 0xFF000000.toInt() == 0xFF000000.toInt())
+
+    @Test fun `color survives Int MIN_VALUE hashcode`() {
+        assertTrue(LetterIcon.colorFor("polygenelubricants") and 0xFF000000.toInt() == 0xFF000000.toInt())
+    }
 }

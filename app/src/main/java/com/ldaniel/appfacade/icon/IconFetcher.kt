@@ -8,18 +8,22 @@ import java.net.URL
 data class FetchedMeta(val title: String?, val iconPath: String?)
 
 object IconFetcher {
-    /** Best-effort favicon + title fetch. Blocking: call on Dispatchers.IO. */
+    /** Best-effort favicon + title fetch. Blocking: call on Dispatchers.IO. Never throws. */
     fun fetch(context: Context, id: String, pageUrl: String): FetchedMeta {
-        val html = httpGet(pageUrl)?.toString(Charsets.UTF_8)
-        val title = html?.let { SiteMeta.parseTitle(it) }
-        val iconBytes = httpGet(SiteMeta.parseIconUrl(html ?: "", pageUrl))
-        val iconPath = iconBytes?.let { bytes ->
-            val file = File(context.filesDir, "icons/$id.img")
-            file.parentFile?.mkdirs()
-            file.writeBytes(bytes)
-            file.absolutePath
+        return try {
+            val html = httpGet(pageUrl)?.toString(Charsets.UTF_8)
+            val title = html?.let { SiteMeta.parseTitle(it) }
+            val iconBytes = httpGet(SiteMeta.parseIconUrl(html ?: "", pageUrl))
+            val iconPath = iconBytes?.let { bytes ->
+                val file = File(context.filesDir, "icons/$id.img")
+                file.parentFile?.mkdirs()
+                file.writeBytes(bytes)
+                file.absolutePath
+            }
+            FetchedMeta(title, iconPath)
+        } catch (e: Exception) {
+            FetchedMeta(null, null)
         }
-        return FetchedMeta(title, iconPath)
     }
 
     private fun httpGet(url: String): ByteArray? {
