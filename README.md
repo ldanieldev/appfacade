@@ -17,6 +17,7 @@ self-hosted web UIs in mind, but it works with any http(s) URL.
   from the Recents switcher and screenshots.
 - **Fullscreen (per app)** — immersive mode with system bars hidden; swipe
   from the edge to peek them
+- **Dark mode** — the manager UI follows the system theme (Material You colors)
 - **Cache management** — HTTP cache auto-clears when an app closes (logins
   untouched); manual "Clear cache" and "Deep clean" (full reset, with warning)
   for when a site accumulates bloat

@@ -2,13 +2,18 @@ package com.ldaniel.appfacade.ui
 
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.ldaniel.appfacade.R
@@ -33,7 +38,9 @@ class ManagerActivity : FragmentActivity() {
         val store = AppGraph.configStore(this)
 
         setContent {
-            MaterialTheme {
+            val scheme = if (isSystemInDarkTheme()) dynamicDarkColorScheme(LocalContext.current)
+                         else dynamicLightColorScheme(LocalContext.current)
+            MaterialTheme(colorScheme = scheme) {
                 val apps by store.apps.collectAsState(initial = emptyList())
                 var editing by remember { mutableStateOf<Editing?>(null) }
 
@@ -56,6 +63,7 @@ class ManagerActivity : FragmentActivity() {
                         onDelete = { app -> guardedDelete(app) },
                     )
                 } else {
+                    BackHandler { editing = null }
                     EditScreen(
                         original = current.original,
                         canLock = Authenticator.canAuthenticate(this),

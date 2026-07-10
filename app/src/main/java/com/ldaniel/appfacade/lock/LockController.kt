@@ -23,6 +23,7 @@ class LockController(
 
     private val overlay = LockOverlayView(activity) { promptUnlock() }
     private var locked = true
+    private var prompting = false
 
     init {
         if (Build.VERSION.SDK_INT >= 33) activity.setRecentsScreenshotEnabled(false)
@@ -31,9 +32,14 @@ class LockController(
     }
 
     override fun onStart(owner: LifecycleOwner) {
-        if (locked) {
-            overlay.visibility = View.VISIBLE
-            promptUnlock()
+        if (locked) overlay.visibility = View.VISIBLE
+    }
+
+    override fun onResume(owner: LifecycleOwner) {
+        if (locked) activity.window.decorView.post {
+            if (locked && !prompting &&
+                activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+            ) promptUnlock()
         }
     }
 
@@ -50,10 +56,12 @@ class LockController(
     }
 
     private fun promptUnlock() {
+        prompting = true
         Authenticator.authenticate(
             activity,
             activity.getString(R.string.unlock_title, appName),
             onSuccess = {
+                prompting = false
                 // Guard against a callback landing after the activity left the
                 // foreground (e.g. user backgrounds the app mid-prompt).
                 if (activity.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
@@ -63,6 +71,7 @@ class LockController(
                 }
             },
             // On cancel/error the overlay stays; its Unlock button re-prompts.
+            onDismiss = { prompting = false },
         )
     }
 }

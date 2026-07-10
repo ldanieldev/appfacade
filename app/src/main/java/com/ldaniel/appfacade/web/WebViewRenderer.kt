@@ -24,6 +24,7 @@ class WebViewRenderer(
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun createView(context: Context): View = WebView(context).also { wv ->
+        wv.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_YES
         wv.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
