@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
 import com.ldaniel.appfacade.data.AppGraph
+import com.ldaniel.appfacade.lock.LockController
 import com.ldaniel.appfacade.model.WebAppConfig
 import com.ldaniel.appfacade.ui.ManagerActivity
 import com.ldaniel.appfacade.web.ErrorView
@@ -97,7 +98,7 @@ class WebAppActivity : FragmentActivity() {
             }
         }
 
-        // Task 7 wires LockController here, before loadUrl (no content flash).
+        if (config.requireUnlock) LockController(this, config.name, root)
 
         r.loadUrl(config.url)
     }

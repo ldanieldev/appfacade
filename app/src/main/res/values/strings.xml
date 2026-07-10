@@ -3,4 +3,7 @@
     <string name="app_removed">This web app was removed — opening AppFacade</string>
     <string name="cant_reach">Can\'t reach %1$s</string>
     <string name="retry">Retry</string>
+    <string name="unlock_title">Unlock %1$s</string>
+    <string name="locked">Locked</string>
+    <string name="unlock">Unlock</string>
 </resources>
