@@ -14,7 +14,8 @@ object Urls {
         } catch (e: URISyntaxException) {
             return null
         }
-        if (uri.scheme != "http" && uri.scheme != "https") return null
+        val scheme = uri.scheme?.lowercase()
+        if (scheme != "http" && scheme != "https") return null
         if (uri.host.isNullOrEmpty()) return null
         return uri.toString()
     }

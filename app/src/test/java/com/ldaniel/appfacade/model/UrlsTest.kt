@@ -1,6 +1,7 @@
 package com.ldaniel.appfacade.model
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -18,6 +19,10 @@ class UrlsTest {
         assertEquals("http://example.com", Urls.normalize("  http://example.com  "))
 
     @Test fun `rejects non-http scheme`() = assertNull(Urls.normalize("ftp://example.com"))
+
+    @Test fun `accepts uppercase scheme`() = assertNotNull(Urls.normalize("HTTP://example.com"))
+
+    @Test fun `rejects uppercase non-http scheme`() = assertNull(Urls.normalize("FTP://example.com"))
 
     @Test fun `rejects garbage`() = assertNull(Urls.normalize("not a url"))
 
