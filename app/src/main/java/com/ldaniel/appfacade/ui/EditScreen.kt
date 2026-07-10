@@ -41,6 +41,7 @@ fun EditScreen(
     var requireUnlock by remember { mutableStateOf(original?.requireUnlock ?: false) }
     var fullscreen by remember { mutableStateOf(original?.fullscreen ?: true) }
     var urlError by remember { mutableStateOf(false) }
+    var saving by remember { mutableStateOf(false) }
 
     Scaffold(topBar = {
         TopAppBar(title = {
@@ -102,10 +103,15 @@ fun EditScreen(
             Row(Modifier.fillMaxWidth().padding(top = 24.dp)) {
                 TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
                 Button(
+                    enabled = !saving,
                     onClick = {
                         val normalized = Urls.normalize(url)
-                        if (normalized == null) urlError = true
-                        else onSave(name.trim(), normalized, requireUnlock, fullscreen)
+                        if (normalized == null) {
+                            urlError = true
+                        } else {
+                            saving = true
+                            onSave(name.trim(), normalized, requireUnlock, fullscreen)
+                        }
                     },
                     modifier = Modifier.padding(start = 8.dp),
                 ) { Text(stringResource(R.string.save)) }

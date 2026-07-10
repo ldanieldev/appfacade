@@ -19,6 +19,7 @@ import com.ldaniel.appfacade.model.WebAppConfig
 import com.ldaniel.appfacade.shortcut.Shortcuts
 import com.ldaniel.appfacade.web.CacheOps
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
@@ -96,9 +97,14 @@ class ManagerActivity : FragmentActivity() {
     /** Spec §5.2: deleting a locked app requires authentication first. */
     private fun guardedDelete(app: WebAppConfig) {
         val doDelete = {
+            // Disable the shortcut first (synchronous, can't be interrupted), then
+            // delete the config under NonCancellable so activity teardown can't
+            // cancel between the two side effects and leave a live dangling shortcut.
+            Shortcuts.disable(this, app.id)
             lifecycleScope.launch {
-                AppGraph.configStore(this@ManagerActivity).delete(app.id)
-                Shortcuts.disable(this@ManagerActivity, app.id)
+                withContext(NonCancellable) {
+                    AppGraph.configStore(this@ManagerActivity).delete(app.id)
+                }
             }
             Unit
         }
