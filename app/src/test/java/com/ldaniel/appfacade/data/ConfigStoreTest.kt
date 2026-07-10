@@ -28,7 +28,7 @@ class ConfigStoreTest {
         try { block(store) } finally { scope.cancel() }
     }
 
-    private val sorayomi = WebAppConfig(id = "a1", name = "Sorayomi", url = "http://192.168.69.109:4567/")
+    private val sorayomi = WebAppConfig(id = "a1", name = "Sorayomi", url = "http://192.168.0.42:4567/")
 
     @Test fun `starts empty`() = runStoreTest { store ->
         assertEquals(emptyList<WebAppConfig>(), store.apps.first())

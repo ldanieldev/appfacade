@@ -9,7 +9,7 @@ class WebAppConfigTest {
 
     @Test fun `round-trips through json`() {
         val config = WebAppConfig(
-            id = "abc", name = "Sorayomi", url = "http://192.168.69.109:4567/",
+            id = "abc", name = "Sorayomi", url = "http://192.168.0.42:4567/",
             iconPath = "/data/icons/abc.img", requireUnlock = true, fullscreen = true,
         )
         val restored = json.decodeFromString<WebAppConfig>(json.encodeToString(WebAppConfig.serializer(), config))
