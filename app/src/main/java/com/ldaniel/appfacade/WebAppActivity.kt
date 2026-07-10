@@ -6,7 +6,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.view.WindowManager
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.widget.FrameLayout
@@ -41,6 +40,8 @@ class WebAppActivity : FragmentActivity() {
 
     private var renderer: WebRenderer? = null
     private var config: WebAppConfig? = null
+    /** Force-closes the currently open popup dialog (and destroys its WebView), if any. */
+    private var dismissPopup: (() -> Unit)? = null
 
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
     private val fileChooser =
@@ -103,16 +104,22 @@ class WebAppActivity : FragmentActivity() {
                 true
             },
             onShowPopup = { view, onUserDismiss ->
-                val dialog = Dialog(this, android.R.style.Theme_DeviceDefault_NoActionBar)
-                dialog.setContentView(view)
-                dialog.window?.setLayout(
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                )
-                dialog.setOnCancelListener { onUserDismiss() }
-                dialog.show()
-                val close = { dialog.setOnCancelListener(null); dialog.dismiss() }
-                close
+                if (isDestroyed || isFinishing) {
+                    onUserDismiss()          // destroy the never-shown popup
+                    val noop: () -> Unit = {}
+                    noop                     // no-op close
+                } else {
+                    dismissPopup?.invoke()   // at most one popup at a time
+                    val dialog = Dialog(this, android.R.style.Theme_DeviceDefault_NoActionBar)
+                    dialog.setContentView(view)
+                    dialog.window?.setLayout(MATCH_PARENT, MATCH_PARENT)
+                    dialog.setOnCancelListener { onUserDismiss() }
+                    dialog.setOnDismissListener { dismissPopup = null }
+                    dialog.show()
+                    val close = { dialog.setOnCancelListener(null); dialog.dismiss() }
+                    dismissPopup = { close(); onUserDismiss() }
+                    close
+                }
             },
         )
         renderer = r
@@ -142,7 +149,16 @@ class WebAppActivity : FragmentActivity() {
     override fun onPause() { super.onPause(); renderer?.onPause() }
     override fun onResume() { super.onResume(); renderer?.onResume() }
 
+    override fun onStop() {
+        super.onStop()
+        // A Dialog is its own window above the lock overlay: never leave a popup
+        // floating over the lock screen. Unlocked apps keep their popup across app
+        // switches (e.g. grabbing a 2FA code) — that's deliberate.
+        if (config?.requireUnlock == true) dismissPopup?.invoke()
+    }
+
     override fun onDestroy() {
+        dismissPopup?.invoke()
         // Spec §5.4: auto-clear HTTP cache on close; cookies/site data untouched.
         renderer?.clearHttpCache()
         renderer?.onDestroy()

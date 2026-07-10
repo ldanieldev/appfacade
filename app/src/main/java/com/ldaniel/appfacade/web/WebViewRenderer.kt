@@ -62,14 +62,16 @@ class WebViewRenderer(
                     domStorageEnabled = true
                 }
                 popup.webViewClient = WebViewClient()
+                var destroyed = false
+                val destroyOnce = { if (!destroyed) { destroyed = true; popup.destroy() } }
                 lateinit var close: () -> Unit
                 popup.webChromeClient = object : WebChromeClient() {
                     override fun onCloseWindow(window: WebView) {
                         close()               // dismiss the host dialog
-                        popup.destroy()
+                        destroyOnce()
                     }
                 }
-                close = present(popup) { popup.destroy() }   // user dismissed -> destroy
+                close = present(popup) { destroyOnce() }   // user dismissed -> destroy
                 (resultMsg.obj as WebView.WebViewTransport).webView = popup
                 resultMsg.sendToTarget()
                 return true
