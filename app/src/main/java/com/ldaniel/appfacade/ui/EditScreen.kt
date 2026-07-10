@@ -1,13 +1,17 @@
 package com.ldaniel.appfacade.ui
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -21,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ldaniel.appfacade.R
@@ -32,7 +37,10 @@ import com.ldaniel.appfacade.model.WebAppConfig
 fun EditScreen(
     original: WebAppConfig?,             // null = adding a new app
     canLock: Boolean,                    // Authenticator.canAuthenticate
-    onSave: (name: String, url: String, requireUnlock: Boolean, fullscreen: Boolean) -> Unit,
+    onSave: (
+        name: String, url: String, requireUnlock: Boolean, fullscreen: Boolean,
+        iconSource: String?, iconStyle: String,
+    ) -> Unit,
     onCancel: () -> Unit,
     onDisableLockRequested: (apply: () -> Unit) -> Unit, // side-door guard hook
 ) {
@@ -40,8 +48,13 @@ fun EditScreen(
     var url by remember { mutableStateOf(original?.url ?: "") }
     var requireUnlock by remember { mutableStateOf(original?.requireUnlock ?: false) }
     var fullscreen by remember { mutableStateOf(original?.fullscreen ?: true) }
+    var iconSource by remember { mutableStateOf(original?.iconSource ?: "") }
+    var iconStyle by remember { mutableStateOf(original?.iconStyle ?: "auto") }
     var urlError by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
+    val previewIcon = original?.iconPath?.let { path ->
+        remember { BitmapFactory.decodeFile(path)?.asImageBitmap() }
+    }
 
     Scaffold(topBar = {
         TopAppBar(title = {
@@ -71,6 +84,50 @@ fun EditScreen(
                 label = { Text(stringResource(R.string.name)) },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             )
+            if (previewIcon != null) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Image(
+                        bitmap = previewIcon,
+                        contentDescription = stringResource(R.string.icon_preview),
+                        modifier = Modifier.size(48.dp),
+                    )
+                }
+            }
+            OutlinedTextField(
+                value = iconSource,
+                onValueChange = { iconSource = it },
+                label = { Text(stringResource(R.string.icon_source)) },
+                supportingText = { Text(stringResource(R.string.icon_source_hint)) },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            )
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                FilterChip(
+                    selected = iconStyle == "auto",
+                    onClick = { iconStyle = "auto" },
+                    label = { Text(stringResource(R.string.style_auto)) },
+                )
+                FilterChip(
+                    selected = iconStyle == "white",
+                    onClick = { iconStyle = "white" },
+                    label = { Text(stringResource(R.string.style_white)) },
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+                FilterChip(
+                    selected = iconStyle == "black",
+                    onClick = { iconStyle = "black" },
+                    label = { Text(stringResource(R.string.style_black)) },
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+                FilterChip(
+                    selected = iconStyle == "full",
+                    onClick = { iconStyle = "full" },
+                    label = { Text(stringResource(R.string.style_full)) },
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
             Row(
                 Modifier.fillMaxWidth().padding(top = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -110,7 +167,10 @@ fun EditScreen(
                             urlError = true
                         } else {
                             saving = true
-                            onSave(name.trim(), normalized, requireUnlock, fullscreen)
+                            onSave(
+                                name.trim(), normalized, requireUnlock, fullscreen,
+                                iconSource.trim().ifBlank { null }, iconStyle,
+                            )
                         }
                     },
                     modifier = Modifier.padding(start = 8.dp),

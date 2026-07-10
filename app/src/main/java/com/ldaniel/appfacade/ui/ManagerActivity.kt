@@ -73,26 +73,33 @@ class ManagerActivity : FragmentActivity() {
                                 this, getString(R.string.unlock_to_change), onSuccess = apply,
                             )
                         },
-                        onSave = { name, url, requireUnlock, fullscreen ->
+                        onSave = { name, url, requireUnlock, fullscreen, iconSource, iconStyle ->
                             lifecycleScope.launch {
                                 val id = current.original?.id ?: UUID.randomUUID().toString()
                                 var config = WebAppConfig(
                                     id = id, name = name, url = url,
                                     iconPath = current.original?.iconPath,
                                     requireUnlock = requireUnlock, fullscreen = fullscreen,
+                                    iconSource = iconSource, iconStyle = iconStyle,
                                 )
-                                if (config.name.isBlank() || config.iconPath == null) {
+                                val sourceChanged = iconSource != current.original?.iconSource
+                                if (config.name.isBlank() || config.iconPath == null || sourceChanged) {
                                     val meta = withContext(Dispatchers.IO) {
-                                        IconFetcher.fetch(this@ManagerActivity, id, url)
+                                        IconFetcher.fetch(
+                                            this@ManagerActivity, id, url,
+                                            name.ifBlank { null }, iconSource,
+                                        )
                                     }
                                     config = config.copy(
                                         name = config.name.ifBlank {
                                             meta.title ?: java.net.URI(url).host
                                         },
-                                        iconPath = config.iconPath ?: meta.iconPath,
+                                        // Don't clobber a working icon with a failed fetch.
+                                        iconPath = meta.iconPath ?: config.iconPath,
                                     )
                                 }
                                 store.upsert(config)
+                                Shortcuts.update(this@ManagerActivity, config)
                                 editing = null
                             }
                         },

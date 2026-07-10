@@ -28,4 +28,11 @@
     <string name="delete_confirm">Delete %1$s? Its home-screen icon will stop working.</string>
     <string name="unlock_to_change">Unlock to change this setting</string>
     <string name="no_apps_yet">No web apps yet — tap + to add one</string>
+    <string name="icon_source">Icon (optional)</string>
+    <string name="icon_source_hint">selfh.st icon name (e.g. mealie) or direct image URL</string>
+    <string name="style_auto">Auto</string>
+    <string name="style_white">White</string>
+    <string name="style_black">Black</string>
+    <string name="style_full">Stretch</string>
+    <string name="icon_preview">Current icon</string>
 </resources>

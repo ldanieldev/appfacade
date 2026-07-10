@@ -19,12 +19,7 @@ object Shortcuts {
     private const val SAFE_ZONE = 0.6f
 
     fun pin(context: Context, config: WebAppConfig) {
-        val shortcut = ShortcutInfoCompat.Builder(context, config.id)
-            .setShortLabel(config.name)
-            .setIcon(shortcutIcon(config))
-            .setIntent(WebAppActivity.launchIntent(context, config.id))
-            .build()
-        ShortcutManagerCompat.requestPinShortcut(context, shortcut, null)
+        ShortcutManagerCompat.requestPinShortcut(context, shortcutInfo(context, config), null)
     }
 
     fun disable(context: Context, id: String) {
@@ -33,10 +28,29 @@ object Shortcuts {
         )
     }
 
+    /** Refreshes an already-pinned shortcut's label/icon in place. No-op if never pinned. */
+    fun update(context: Context, config: WebAppConfig) {
+        ShortcutManagerCompat.updateShortcuts(context, listOf(shortcutInfo(context, config)))
+    }
+
+    private fun shortcutInfo(context: Context, config: WebAppConfig): ShortcutInfoCompat =
+        ShortcutInfoCompat.Builder(context, config.id)
+            .setShortLabel(config.name)
+            .setIcon(shortcutIcon(config))
+            .setIntent(WebAppActivity.launchIntent(context, config.id))
+            .build()
+
     private fun shortcutIcon(config: WebAppConfig): IconCompat {
         val favicon = config.iconPath?.let { decodeBounded(it, ICON_SIZE) }
-        val bitmap = favicon?.let { padForAdaptive(it) } ?: LetterIcon.render(config.name, ICON_SIZE)
+        val bitmap = favicon?.let { styledIcon(it, config.iconStyle) } ?: LetterIcon.render(config.name, ICON_SIZE)
         return IconCompat.createWithAdaptiveBitmap(bitmap)
+    }
+
+    private fun styledIcon(src: Bitmap, style: String): Bitmap = when (style) {
+        "full" -> Bitmap.createScaledBitmap(src, ICON_SIZE, ICON_SIZE, true)
+        "white" -> padOnPlate(src, Color.WHITE)
+        "black" -> padOnPlate(src, Color.BLACK)
+        else -> padOnPlate(src, plateColor(src))
     }
 
     /** Decode with inSampleSize so a huge favicon can't allocate tens of MB. */
@@ -49,11 +63,11 @@ object Shortcuts {
         return BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sample })
     }
 
-    /** Center the favicon in the adaptive safe zone on a plate sampled from the favicon. */
-    private fun padForAdaptive(src: Bitmap): Bitmap {
+    /** Center the favicon in the adaptive safe zone on a plate of the given background color. */
+    private fun padOnPlate(src: Bitmap, bg: Int): Bitmap {
         val out = Bitmap.createBitmap(ICON_SIZE, ICON_SIZE, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out)
-        canvas.drawColor(plateColor(src))
+        canvas.drawColor(bg)
         val inner = (ICON_SIZE * SAFE_ZONE).toInt()
         val scaled = Bitmap.createScaledBitmap(src, inner, inner, true)
         val offset = (ICON_SIZE - inner) / 2f

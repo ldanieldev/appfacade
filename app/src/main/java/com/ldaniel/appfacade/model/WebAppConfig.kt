@@ -10,4 +10,6 @@ data class WebAppConfig(
     val iconPath: String? = null,
     val requireUnlock: Boolean = false,
     val fullscreen: Boolean = true,
+    val iconSource: String? = null,   // manual override: selfh.st slug or direct image URL
+    val iconStyle: String = "auto",   // plate style: auto | white | black | full
 )

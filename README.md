@@ -21,8 +21,7 @@ self-hosted web UIs in mind, but it works with any http(s) URL.
 - **Cache management** — HTTP cache auto-clears when an app closes (logins
   untouched); manual "Clear cache" and "Deep clean" (full reset, with warning)
   for when a site accumulates bloat
-- **Icon & name autofill** — favicon and page title are fetched when you add
-  a URL, with a letter-tile fallback
+- **Icons that look right** — pulls from the selfh.st icon pack by app name, falls back to the site favicon, letter tile as last resort; per-app plate styles (auto-match, white, black, stretch) and a manual slug/URL override
 - **File uploads** work inside the webview
 - **Popup logins** — window.open() popups (e.g. OAuth "Login with…" flows) open in an in-app window
 - Plain-HTTP URLs are allowed (intended for LAN/self-hosted use — traffic to
