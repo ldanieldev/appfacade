@@ -13,6 +13,7 @@ import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import com.ldaniel.appfacade.data.AppGraph
 import com.ldaniel.appfacade.lock.LockController
 import com.ldaniel.appfacade.model.WebAppConfig
@@ -21,6 +22,7 @@ import com.ldaniel.appfacade.web.ErrorView
 import com.ldaniel.appfacade.web.Fullscreen
 import com.ldaniel.appfacade.web.WebRenderer
 import com.ldaniel.appfacade.web.WebViewRenderer
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 class WebAppActivity : FragmentActivity() {
@@ -36,6 +38,7 @@ class WebAppActivity : FragmentActivity() {
     }
 
     private var renderer: WebRenderer? = null
+    private var config: WebAppConfig? = null
 
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
     private val fileChooser =
@@ -51,17 +54,36 @@ class WebAppActivity : FragmentActivity() {
 
         val appId = intent.getStringExtra(EXTRA_APP_ID) ?: intent.data?.lastPathSegment
         // Single small local file read, once per task creation.
-        val config = appId?.let { id ->
+        val loaded = appId?.let { id ->
             runBlocking { AppGraph.configStore(this@WebAppActivity).get(id) }
         }
-        if (config == null) {
+        if (loaded == null) {
             Toast.makeText(this, R.string.app_removed, Toast.LENGTH_LONG).show()
             startActivity(Intent(this, ManagerActivity::class.java))
             finish()
             return
         }
 
-        setUp(config)
+        config = loaded
+        setUp(loaded)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // The task can outlive the manager's edits (documentLaunchMode="intoExisting"
+        // keeps this task around indefinitely), so re-check the persisted config on
+        // every return to foreground and pick up lock/url/fullscreen changes.
+        val current = config ?: return
+        lifecycleScope.launch {
+            val fresh = AppGraph.configStore(this@WebAppActivity).get(current.id)
+            when {
+                fresh == null -> {
+                    Toast.makeText(this@WebAppActivity, R.string.app_removed, Toast.LENGTH_LONG).show()
+                    finish()
+                }
+                fresh != current -> recreate() // picks up lock/url/fullscreen changes on next onCreate
+            }
+        }
     }
 
     private fun setUp(config: WebAppConfig) {

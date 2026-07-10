@@ -3,9 +3,11 @@ package com.ldaniel.appfacade.lock
 import android.os.Build
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.ldaniel.appfacade.R
 
@@ -40,13 +42,25 @@ class LockController(
         overlay.visibility = View.VISIBLE
     }
 
+    override fun onPause(owner: LifecycleOwner) {
+        // Belt and suspenders below API 33: setRecentsScreenshotEnabled(false) is
+        // API 33+ only, so on Android 12/12L the Recents thumbnail can still
+        // capture the last rendered frame. FLAG_SECURE blocks that snapshot too.
+        activity.window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+    }
+
     private fun promptUnlock() {
         Authenticator.authenticate(
             activity,
             activity.getString(R.string.unlock_title, appName),
             onSuccess = {
-                locked = false
-                overlay.visibility = View.GONE
+                // Guard against a callback landing after the activity left the
+                // foreground (e.g. user backgrounds the app mid-prompt).
+                if (activity.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                    locked = false
+                    overlay.visibility = View.GONE
+                    activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                }
             },
             // On cancel/error the overlay stays; its Unlock button re-prompts.
         )
