@@ -12,8 +12,8 @@ android {
         applicationId = "com.ldaniel.appfacade"
         minSdk = 31
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
     }
 
     signingConfigs {
@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons)
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.webkit)
     implementation(libs.androidx.datastore)
     implementation(libs.kotlinx.serialization.json)
