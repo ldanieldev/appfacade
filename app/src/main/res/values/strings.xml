@@ -7,4 +7,25 @@
     <string name="locked">Locked</string>
     <string name="unlock">Unlock</string>
     <string name="shortcut_removed">Removed in AppFacade</string>
+    <string name="add_app">Add web app</string>
+    <string name="edit_app">Edit web app</string>
+    <string name="name">Name</string>
+    <string name="url">URL</string>
+    <string name="invalid_url">Enter a valid http(s) URL</string>
+    <string name="http_hint">Unencrypted connection (fine for LAN use)</string>
+    <string name="require_unlock">Fingerprint lock</string>
+    <string name="no_lockscreen_warning">No fingerprint or screen lock set up on this phone — the lock can\'t protect anything</string>
+    <string name="fullscreen">Fullscreen</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="pin_to_home">Add to home screen</string>
+    <string name="clear_cache">Clear cache</string>
+    <string name="cache_cleared">Cache cleared</string>
+    <string name="deep_clean">Deep clean…</string>
+    <string name="deep_clean_warning">This deletes ALL site data for every web app — you will be logged out everywhere and site settings will reset. Cache problems it fixes: slow loads that built up over time.</string>
+    <string name="deep_clean_done">All site data deleted</string>
+    <string name="delete">Delete…</string>
+    <string name="delete_confirm">Delete %1$s? Its home-screen icon will stop working.</string>
+    <string name="unlock_to_change">Unlock to change this setting</string>
+    <string name="no_apps_yet">No web apps yet — tap + to add one</string>
 </resources>

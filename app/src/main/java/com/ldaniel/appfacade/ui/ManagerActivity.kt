@@ -1,18 +1,111 @@
 package com.ldaniel.appfacade.ui
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
+import com.ldaniel.appfacade.R
+import com.ldaniel.appfacade.data.AppGraph
+import com.ldaniel.appfacade.icon.IconFetcher
+import com.ldaniel.appfacade.lock.Authenticator
+import com.ldaniel.appfacade.model.WebAppConfig
+import com.ldaniel.appfacade.shortcut.Shortcuts
+import com.ldaniel.appfacade.web.CacheOps
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.UUID
+
+/** null-sentinel wrapper: Editing(null) = adding a new app. */
+private data class Editing(val original: WebAppConfig?)
 
 class ManagerActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val store = AppGraph.configStore(this)
+
         setContent {
             MaterialTheme {
-                Text("AppFacade")
+                val apps by store.apps.collectAsState(initial = emptyList())
+                var editing by remember { mutableStateOf<Editing?>(null) }
+
+                val current = editing
+                if (current == null) {
+                    ManagerScreen(
+                        apps = apps,
+                        onAdd = { editing = Editing(null) },
+                        onEdit = { editing = Editing(it) },
+                        onPin = { Shortcuts.pin(this, it) },
+                        onClearCache = {
+                            CacheOps.clearHttpCache(this)
+                            Toast.makeText(this, R.string.cache_cleared, Toast.LENGTH_SHORT).show()
+                        },
+                        onDeepClean = {
+                            CacheOps.deepClean(this) {
+                                Toast.makeText(this, R.string.deep_clean_done, Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onDelete = { app -> guardedDelete(app) },
+                    )
+                } else {
+                    EditScreen(
+                        original = current.original,
+                        canLock = Authenticator.canAuthenticate(this),
+                        onCancel = { editing = null },
+                        onDisableLockRequested = { apply ->
+                            Authenticator.authenticate(
+                                this, getString(R.string.unlock_to_change), onSuccess = apply,
+                            )
+                        },
+                        onSave = { name, url, requireUnlock, fullscreen ->
+                            lifecycleScope.launch {
+                                val id = current.original?.id ?: UUID.randomUUID().toString()
+                                var config = WebAppConfig(
+                                    id = id, name = name, url = url,
+                                    iconPath = current.original?.iconPath,
+                                    requireUnlock = requireUnlock, fullscreen = fullscreen,
+                                )
+                                if (config.name.isBlank() || config.iconPath == null) {
+                                    val meta = withContext(Dispatchers.IO) {
+                                        IconFetcher.fetch(this@ManagerActivity, id, url)
+                                    }
+                                    config = config.copy(
+                                        name = config.name.ifBlank {
+                                            meta.title ?: java.net.URI(url).host
+                                        },
+                                        iconPath = config.iconPath ?: meta.iconPath,
+                                    )
+                                }
+                                store.upsert(config)
+                                editing = null
+                            }
+                        },
+                    )
+                }
             }
+        }
+    }
+
+    /** Spec §5.2: deleting a locked app requires authentication first. */
+    private fun guardedDelete(app: WebAppConfig) {
+        val doDelete = {
+            lifecycleScope.launch {
+                AppGraph.configStore(this@ManagerActivity).delete(app.id)
+                Shortcuts.disable(this@ManagerActivity, app.id)
+            }
+            Unit
+        }
+        if (app.requireUnlock) {
+            Authenticator.authenticate(this, getString(R.string.unlock_to_change), onSuccess = doDelete)
+        } else {
+            doDelete()
         }
     }
 }
