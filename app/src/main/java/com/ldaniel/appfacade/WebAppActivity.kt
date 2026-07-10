@@ -68,7 +68,9 @@ class WebAppActivity : FragmentActivity() {
         lateinit var errorView: ErrorView
 
         val r = WebViewRenderer(
-            onMainFrameError = { detail -> runOnUiThread { errorView.show(detail) } },
+            onMainFrameError = { detail ->
+                runOnUiThread { if (!isDestroyed && !isFinishing) errorView.show(detail) }
+            },
             onShowFileChooser = { callback, params ->
                 fileChooserCallback?.onReceiveValue(null)
                 fileChooserCallback = callback
