@@ -11,8 +11,7 @@ object CacheOps {
     /** Clears the app-wide WebView HTTP cache. Cookies and site storage untouched. */
     fun clearHttpCache(context: Context) {
         val throwaway = WebView(context)
-        throwaway.clearCache(true)
-        throwaway.destroy()
+        try { throwaway.clearCache(true) } finally { throwaway.destroy() }
     }
 
     /** Deletes ALL site data including cookies. Callers must warn the user first. */
@@ -21,9 +20,8 @@ object CacheOps {
             WebStorageCompat.deleteBrowsingData(WebStorage.getInstance()) { onDone() }
         } else {
             WebStorage.getInstance().deleteAllData()
-            CookieManager.getInstance().removeAllCookies(null)
             clearHttpCache(context)
-            onDone()
+            CookieManager.getInstance().removeAllCookies { onDone() }
         }
     }
 }

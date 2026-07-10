@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.view.View
+import android.webkit.CookieManager
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
@@ -55,7 +56,9 @@ class WebViewRenderer(
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DELETE_BROWSING_DATA)) {
             WebStorageCompat.deleteBrowsingData(WebStorage.getInstance()) { onDone() }
         } else {
-            webView?.context?.let { CacheOps.deepClean(it, onDone) } ?: onDone()
+            WebStorage.getInstance().deleteAllData()
+            webView?.clearCache(true)
+            CookieManager.getInstance().removeAllCookies { onDone() }
         }
     }
 
