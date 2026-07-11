@@ -12,8 +12,8 @@ android {
         applicationId = "com.ldaniel.appfacade"
         minSdk = 31
         targetSdk = 36
-        versionCode = 6
-        versionName = "0.4.0"
+        versionCode = 7
+        versionName = "0.4.1"
     }
 
     signingConfigs {
@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.webkit)
     implementation(libs.androidx.datastore)
+    implementation(libs.androidx.swiperefreshlayout)
     implementation(libs.kotlinx.serialization.json)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

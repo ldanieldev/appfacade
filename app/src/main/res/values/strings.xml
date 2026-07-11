@@ -16,6 +16,8 @@
     <string name="require_unlock">Fingerprint lock</string>
     <string name="no_lockscreen_warning">No fingerprint or screen lock set up on this phone — the lock can\'t protect anything</string>
     <string name="fullscreen">Fullscreen</string>
+    <string name="avoid_cutout">Avoid camera cutout</string>
+    <string name="pull_to_refresh">Pull down to refresh</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="pin_to_home">Add to home screen</string>

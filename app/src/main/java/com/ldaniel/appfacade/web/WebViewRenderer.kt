@@ -2,6 +2,7 @@ package com.ldaniel.appfacade.web
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Color
 import android.net.Uri
 import android.view.View
 import android.webkit.CookieManager
@@ -12,6 +13,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.webkit.WebStorageCompat
 import androidx.webkit.WebViewFeature
 
@@ -19,26 +21,49 @@ class WebViewRenderer(
     private val onMainFrameError: (String) -> Unit,
     private val onShowFileChooser: ((ValueCallback<Array<Uri>>, WebChromeClient.FileChooserParams) -> Boolean)? = null,
     private val onShowPopup: PopupPresenter? = null,
+    private val pullToRefresh: Boolean = true,
+    private val onThemeColor: ((Int?) -> Unit)? = null,
 ) : WebRenderer {
 
     private var webView: WebView? = null
+    private var swipe: SwipeRefreshLayout? = null
 
     @SuppressLint("SetJavaScriptEnabled")
-    override fun createView(context: Context): View = WebView(context).also { wv ->
+    override fun createView(context: Context): View {
+        val wv = WebView(context)
         wv.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_YES
         wv.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
             javaScriptCanOpenWindowsAutomatically = true
             setSupportMultipleWindows(true)
+            setSupportZoom(true)
+            builtInZoomControls = true
+            displayZoomControls = false
         }
         wv.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView, url: String) {
+                swipe?.isRefreshing = false
+                if (onThemeColor != null) {
+                    view.evaluateJavascript(
+                        "(function(){var m=document.querySelector('meta[name=\"theme-color\"]');return m?m.content:'';})()"
+                    ) { raw ->
+                        val value = raw?.trim('"')?.takeIf { it.isNotBlank() && it != "null" }
+                        val color = value?.let { runCatching { Color.parseColor(it) }.getOrNull() }
+                        onThemeColor.invoke(color)
+                    }
+                }
+            }
+
             override fun onReceivedError(
                 view: WebView,
                 request: WebResourceRequest,
                 error: WebResourceError,
             ) {
-                if (request.isForMainFrame) onMainFrameError(error.description.toString())
+                if (request.isForMainFrame) {
+                    swipe?.isRefreshing = false
+                    onMainFrameError(error.description.toString())
+                }
             }
         }
         wv.webChromeClient = object : WebChromeClient() {
@@ -78,6 +103,11 @@ class WebViewRenderer(
             }
         }
         webView = wv
+        return if (!pullToRefresh) wv else SwipeRefreshLayout(context).also { layout ->
+            layout.addView(wv)
+            layout.setOnRefreshListener { wv.reload() }
+            swipe = layout
+        }
     }
 
     override fun loadUrl(url: String) { webView?.loadUrl(url) }
@@ -100,5 +130,6 @@ class WebViewRenderer(
     override fun onDestroy() {
         webView?.destroy()
         webView = null
+        swipe = null
     }
 }

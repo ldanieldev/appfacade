@@ -3,6 +3,7 @@ package com.ldaniel.appfacade
 import android.app.Dialog
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -13,6 +14,8 @@ import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.ldaniel.appfacade.data.AppGraph
@@ -92,6 +95,7 @@ class WebAppActivity : FragmentActivity() {
     private fun setUp(config: WebAppConfig) {
         val root = FrameLayout(this)
         lateinit var errorView: ErrorView
+        val avoidCutout = config.fullscreen && config.avoidCutout
 
         val r = WebViewRenderer(
             onMainFrameError = { detail ->
@@ -121,10 +125,17 @@ class WebAppActivity : FragmentActivity() {
                     close
                 }
             },
+            pullToRefresh = config.pullToRefresh,
+            onThemeColor = if (avoidCutout) { color ->
+                runOnUiThread {
+                    if (!isDestroyed && !isFinishing) root.setBackgroundColor(color ?: Color.BLACK)
+                }
+            } else null,
         )
         renderer = r
 
-        root.addView(r.createView(this), MATCH_PARENT, MATCH_PARENT)
+        val contentView = r.createView(this)
+        root.addView(contentView, MATCH_PARENT, MATCH_PARENT)
         errorView = ErrorView(this, config.name) {
             errorView.hide()
             r.loadUrl(config.url)
@@ -132,7 +143,17 @@ class WebAppActivity : FragmentActivity() {
         root.addView(errorView, MATCH_PARENT, MATCH_PARENT)
         setContentView(root)
 
-        if (config.fullscreen) Fullscreen.apply(window)
+        if (config.fullscreen) Fullscreen.apply(window) else Fullscreen.clear(window)
+
+        if (avoidCutout) {
+            root.setBackgroundColor(Color.BLACK)
+            ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+                val top = insets.getInsets(WindowInsetsCompat.Type.displayCutout()).top
+                (contentView.layoutParams as FrameLayout.LayoutParams).topMargin = top
+                contentView.requestLayout()
+                insets
+            }
+        }
 
         onBackPressedDispatcher.addCallback(this) {
             if (r.canGoBack()) r.goBack() else {

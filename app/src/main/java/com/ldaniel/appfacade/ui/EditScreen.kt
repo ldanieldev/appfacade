@@ -39,7 +39,7 @@ fun EditScreen(
     canLock: Boolean,                    // Authenticator.canAuthenticate
     onSave: (
         name: String, url: String, requireUnlock: Boolean, fullscreen: Boolean,
-        iconSource: String?, iconStyle: String,
+        avoidCutout: Boolean, pullToRefresh: Boolean, iconSource: String?, iconStyle: String,
     ) -> Unit,
     onCancel: () -> Unit,
     onDisableLockRequested: (apply: () -> Unit) -> Unit, // side-door guard hook
@@ -48,6 +48,8 @@ fun EditScreen(
     var url by remember { mutableStateOf(original?.url ?: "") }
     var requireUnlock by remember { mutableStateOf(original?.requireUnlock ?: false) }
     var fullscreen by remember { mutableStateOf(original?.fullscreen ?: true) }
+    var avoidCutout by remember { mutableStateOf(original?.avoidCutout ?: false) }
+    var pullToRefresh by remember { mutableStateOf(original?.pullToRefresh ?: true) }
     var iconSource by remember { mutableStateOf(original?.iconSource ?: "") }
     var iconStyle by remember { mutableStateOf(original?.iconStyle ?: "auto") }
     var urlError by remember { mutableStateOf(false) }
@@ -157,6 +159,22 @@ fun EditScreen(
                 Text(stringResource(R.string.fullscreen), Modifier.weight(1f))
                 Switch(checked = fullscreen, onCheckedChange = { fullscreen = it })
             }
+            if (fullscreen) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(stringResource(R.string.avoid_cutout), Modifier.weight(1f))
+                    Switch(checked = avoidCutout, onCheckedChange = { avoidCutout = it })
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth().padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(R.string.pull_to_refresh), Modifier.weight(1f))
+                Switch(checked = pullToRefresh, onCheckedChange = { pullToRefresh = it })
+            }
             Row(Modifier.fillMaxWidth().padding(top = 24.dp)) {
                 TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
                 Button(
@@ -169,6 +187,7 @@ fun EditScreen(
                             saving = true
                             onSave(
                                 name.trim(), normalized, requireUnlock, fullscreen,
+                                avoidCutout, pullToRefresh,
                                 iconSource.trim().ifBlank { null }, iconStyle,
                             )
                         }

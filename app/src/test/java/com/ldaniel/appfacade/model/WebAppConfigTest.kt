@@ -12,6 +12,7 @@ class WebAppConfigTest {
             id = "abc", name = "Sorayomi", url = "http://192.168.0.42:4567/",
             iconPath = "/data/icons/abc.img", requireUnlock = true, fullscreen = true,
             iconSource = "sorayomi", iconStyle = "white",
+            avoidCutout = true, pullToRefresh = false,
         )
         val restored = json.decodeFromString<WebAppConfig>(json.encodeToString(WebAppConfig.serializer(), config))
         assertEquals(config, restored)
@@ -24,5 +25,7 @@ class WebAppConfigTest {
         assertEquals(WebAppConfig(id = "x", name = "n", url = "http://h/"), restored)
         assertEquals(null, restored.iconSource)
         assertEquals("auto", restored.iconStyle)
+        assertEquals(false, restored.avoidCutout)
+        assertEquals(true, restored.pullToRefresh)
     }
 }

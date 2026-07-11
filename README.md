@@ -15,8 +15,8 @@ self-hosted web UIs in mind, but it works with any http(s) URL.
 - **Fingerprint lock (per app)** — lock any app on every loss of foreground;
   unlocks with biometrics or your lockscreen PIN. Locked content is hidden
   from the Recents switcher and screenshots.
-- **Fullscreen (per app)** — immersive mode with system bars hidden; swipe
-  from the edge to peek them
+- **Fullscreen (per app)** — immersive mode with system bars hidden; swipe from the edge to peek them; optional camera-cutout avoidance tinted to the site's theme color
+- **Pull-to-refresh & pinch zoom** — swipe down to reload (per-app toggle); zoom respects each site's own settings
 - **Dark mode** — the manager UI follows the system theme (Material You colors)
 - **Cache management** — HTTP cache auto-clears when an app closes (logins
   untouched); manual "Clear cache" and "Deep clean" (full reset, with warning)

@@ -73,13 +73,14 @@ class ManagerActivity : FragmentActivity() {
                                 this, getString(R.string.unlock_to_change), onSuccess = apply,
                             )
                         },
-                        onSave = { name, url, requireUnlock, fullscreen, iconSource, iconStyle ->
+                        onSave = { name, url, requireUnlock, fullscreen, avoidCutout, pullToRefresh, iconSource, iconStyle ->
                             lifecycleScope.launch {
                                 val id = current.original?.id ?: UUID.randomUUID().toString()
                                 var config = WebAppConfig(
                                     id = id, name = name, url = url,
                                     iconPath = current.original?.iconPath,
                                     requireUnlock = requireUnlock, fullscreen = fullscreen,
+                                    avoidCutout = avoidCutout, pullToRefresh = pullToRefresh,
                                     iconSource = iconSource, iconStyle = iconStyle,
                                 )
                                 val sourceChanged = iconSource != current.original?.iconSource
