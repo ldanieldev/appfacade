@@ -50,3 +50,7 @@ Standard Android Gradle project (AGP 9, JDK 17, `compileSdk 36`). Point
 
 Signing uses four repository secrets: `SIGNING_KEYSTORE_B64` (base64 keystore),
 `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`.
+
+## License
+
+Personal, non-commercial use only. See [LICENSE](LICENSE).
