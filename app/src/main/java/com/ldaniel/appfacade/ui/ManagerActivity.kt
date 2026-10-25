@@ -1,9 +1,13 @@
 package com.ldaniel.appfacade.ui
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -20,9 +24,11 @@ import com.ldaniel.appfacade.R
 import com.ldaniel.appfacade.data.AppGraph
 import com.ldaniel.appfacade.icon.IconFetcher
 import com.ldaniel.appfacade.lock.Authenticator
+import com.ldaniel.appfacade.model.SitePermission
 import com.ldaniel.appfacade.model.WebAppConfig
 import com.ldaniel.appfacade.shortcut.Shortcuts
 import com.ldaniel.appfacade.web.CacheOps
+import com.ldaniel.appfacade.web.SitePermissions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
@@ -33,6 +39,31 @@ import java.util.UUID
 private data class Editing(val original: WebAppConfig?)
 
 class ManagerActivity : FragmentActivity() {
+    private var held by mutableStateOf<Set<SitePermission>>(emptySet())
+
+    private var blocked by mutableStateOf<Set<SitePermission>>(emptySet())
+
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        held = SitePermissions.held(this)
+        blocked = blocked - held
+        val permanentlyDenied = results.isNotEmpty() && results.values.none { it } &&
+            results.keys.none { shouldShowRequestPermissionRationale(it) }
+        if (permanentlyDenied) {
+            val requested = SitePermission.entries.filter { p ->
+                SitePermissions.manifestPermissions(p).any { it in results.keys }
+            }
+            blocked = (blocked + requested) - held
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        held = SitePermissions.held(this)
+        blocked = blocked - held
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val store = AppGraph.configStore(this)
@@ -61,6 +92,19 @@ class ManagerActivity : FragmentActivity() {
                             }
                         },
                         onDelete = { app -> guardedDelete(app) },
+                        held = held,
+                        blocked = blocked,
+                        onRequestPermission = { permission ->
+                            permissionLauncher.launch(SitePermissions.manifestPermissions(permission))
+                        },
+                        onOpenSettings = {
+                            startActivity(
+                                Intent(
+                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.fromParts("package", packageName, null),
+                                )
+                            )
+                        },
                     )
                 } else {
                     BackHandler { editing = null }
@@ -73,16 +117,14 @@ class ManagerActivity : FragmentActivity() {
                                 this, getString(R.string.unlock_to_change), onSuccess = apply,
                             )
                         },
-                        onSave = { name, url, requireUnlock, fullscreen, avoidCutout, pullToRefresh, iconSource, iconStyle ->
+                        held = held,
+                        onSave = { draft ->
                             lifecycleScope.launch {
                                 val id = current.original?.id ?: UUID.randomUUID().toString()
-                                var config = WebAppConfig(
-                                    id = id, name = name, url = url,
-                                    iconPath = current.original?.iconPath,
-                                    requireUnlock = requireUnlock, fullscreen = fullscreen,
-                                    avoidCutout = avoidCutout, pullToRefresh = pullToRefresh,
-                                    iconSource = iconSource, iconStyle = iconStyle,
-                                )
+                                val name = draft.name
+                                val url = draft.url
+                                val iconSource = draft.iconSource
+                                var config = draft.copy(id = id, iconPath = current.original?.iconPath)
                                 val sourceChanged = iconSource != current.original?.iconSource
                                 if (config.name.isBlank() || config.iconPath == null || sourceChanged) {
                                     val meta = withContext(Dispatchers.IO) {

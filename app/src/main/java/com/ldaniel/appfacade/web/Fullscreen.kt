@@ -19,7 +19,7 @@ object Fullscreen {
 
     /** Explicitly restore normal (non-fullscreen) window state. */
     fun clear(window: Window) {
-        WindowCompat.setDecorFitsSystemWindows(window, true)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setCutoutMode(window, WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT)
         WindowInsetsControllerCompat(window, window.decorView)
             .show(WindowInsetsCompat.Type.systemBars())

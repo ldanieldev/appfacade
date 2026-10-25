@@ -29,18 +29,18 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ldaniel.appfacade.R
+import com.ldaniel.appfacade.model.SitePermission
 import com.ldaniel.appfacade.model.Urls
 import com.ldaniel.appfacade.model.WebAppConfig
+import com.ldaniel.appfacade.model.WebOrientation
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditScreen(
     original: WebAppConfig?,             // null = adding a new app
     canLock: Boolean,                    // Authenticator.canAuthenticate
-    onSave: (
-        name: String, url: String, requireUnlock: Boolean, fullscreen: Boolean,
-        avoidCutout: Boolean, pullToRefresh: Boolean, iconSource: String?, iconStyle: String,
-    ) -> Unit,
+    held: Set<SitePermission>,
+    onSave: (draft: WebAppConfig) -> Unit,
     onCancel: () -> Unit,
     onDisableLockRequested: (apply: () -> Unit) -> Unit, // side-door guard hook
 ) {
@@ -52,6 +52,10 @@ fun EditScreen(
     var pullToRefresh by remember { mutableStateOf(original?.pullToRefresh ?: true) }
     var iconSource by remember { mutableStateOf(original?.iconSource ?: "") }
     var iconStyle by remember { mutableStateOf(original?.iconStyle ?: "auto") }
+    var allowCamera by remember { mutableStateOf(original?.allowCamera ?: false) }
+    var allowMicrophone by remember { mutableStateOf(original?.allowMicrophone ?: false) }
+    var allowLocation by remember { mutableStateOf(original?.allowLocation ?: false) }
+    var orientation by remember { mutableStateOf(original?.orientation ?: WebOrientation.AUTO) }
     var urlError by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     val previewIcon = original?.iconPath?.let { path ->
@@ -130,6 +134,25 @@ fun EditScreen(
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                FilterChip(
+                    selected = orientation == WebOrientation.AUTO,
+                    onClick = { orientation = WebOrientation.AUTO },
+                    label = { Text(stringResource(R.string.orientation_auto)) },
+                )
+                FilterChip(
+                    selected = orientation == WebOrientation.PORTRAIT,
+                    onClick = { orientation = WebOrientation.PORTRAIT },
+                    label = { Text(stringResource(R.string.orientation_portrait)) },
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+                FilterChip(
+                    selected = orientation == WebOrientation.LANDSCAPE,
+                    onClick = { orientation = WebOrientation.LANDSCAPE },
+                    label = { Text(stringResource(R.string.orientation_landscape)) },
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
             Row(
                 Modifier.fillMaxWidth().padding(top = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -175,6 +198,12 @@ fun EditScreen(
                 Text(stringResource(R.string.pull_to_refresh), Modifier.weight(1f))
                 Switch(checked = pullToRefresh, onCheckedChange = { pullToRefresh = it })
             }
+            PermissionRow(R.string.permission_camera, SitePermission.CAMERA in held, allowCamera) { allowCamera = it }
+            PermissionRow(R.string.permission_microphone, SitePermission.MICROPHONE in held, allowMicrophone) { allowMicrophone = it }
+            PermissionRow(R.string.permission_location, SitePermission.LOCATION in held, allowLocation) { allowLocation = it }
+            if (Urls.normalize(url)?.startsWith("http://") == true) {
+                Text(stringResource(R.string.permissions_https_only), Modifier.padding(top = 8.dp))
+            }
             Row(Modifier.fillMaxWidth().padding(top = 24.dp)) {
                 TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel)) }
                 Button(
@@ -185,10 +214,18 @@ fun EditScreen(
                             urlError = true
                         } else {
                             saving = true
+                            val base = original ?: WebAppConfig(id = "", name = "", url = normalized)
                             onSave(
-                                name.trim(), normalized, requireUnlock, fullscreen,
-                                avoidCutout, pullToRefresh,
-                                iconSource.trim().ifBlank { null }, iconStyle,
+                                base.copy(
+                                    name = name.trim(), url = normalized,
+                                    requireUnlock = requireUnlock, fullscreen = fullscreen,
+                                    avoidCutout = avoidCutout, pullToRefresh = pullToRefresh,
+                                    iconSource = iconSource.trim().ifBlank { null },
+                                    iconStyle = iconStyle,
+                                    allowCamera = allowCamera, allowMicrophone = allowMicrophone,
+                                    allowLocation = allowLocation,
+                                    orientation = orientation,
+                                )
                             )
                         }
                     },
@@ -196,5 +233,19 @@ fun EditScreen(
                 ) { Text(stringResource(R.string.save)) }
             }
         }
+    }
+}
+
+@Composable
+private fun PermissionRow(label: Int, held: Boolean, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(label))
+            if (!held) Text(stringResource(R.string.permission_not_held))
+        }
+        Switch(checked = checked, enabled = held, onCheckedChange = onChange)
     }
 }

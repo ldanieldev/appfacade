@@ -36,5 +36,17 @@
     <string name="style_white">White</string>
     <string name="style_black">Black</string>
     <string name="style_full">Stretch</string>
+    <string name="orientation_auto">Auto</string>
+    <string name="orientation_portrait">Portrait</string>
+    <string name="orientation_landscape">Landscape</string>
     <string name="icon_preview">Current icon</string>
+    <string name="site_permissions">Site permissions</string>
+    <string name="permission_camera">Camera</string>
+    <string name="permission_microphone">Microphone</string>
+    <string name="permission_location">Location</string>
+    <string name="permission_granted">Granted</string>
+    <string name="permission_grant">Grant</string>
+    <string name="permission_open_settings">Open settings</string>
+    <string name="permission_not_held">Grant it on AppFacade\'s main screen first</string>
+    <string name="permissions_https_only">Camera, microphone and location only work on https:// sites</string>
 </resources>

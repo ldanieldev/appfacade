@@ -16,7 +16,9 @@ self-hosted web UIs in mind, but it works with any http(s) URL.
   unlocks with biometrics or your lockscreen PIN. Locked content is hidden
   from the Recents switcher and screenshots.
 - **Fullscreen (per app)** — immersive mode with system bars hidden; swipe from the edge to peek them; optional camera-cutout avoidance tinted to the site's theme color
-- **Pull-to-refresh & pinch zoom** — swipe down to reload (per-app toggle); zoom respects each site's own settings
+- **Pull-to-refresh & pinch zoom** — swipe down to reload (per-app toggle); only triggers when the content under your finger is at its top, so it works with inner-scrolling sites; zoom respects each site's own settings
+- **Site permissions (per app)** — camera, microphone and location for `https://` sites; grant each to AppFacade from its main screen, then toggle it per app
+- **Orientation lock (per app)** — Auto, Portrait or Landscape
 - **Dark mode** — the manager UI follows the system theme (Material You colors)
 - **Cache management** — HTTP cache auto-clears when an app closes (logins
   untouched); manual "Clear cache" and "Deep clean" (full reset, with warning)

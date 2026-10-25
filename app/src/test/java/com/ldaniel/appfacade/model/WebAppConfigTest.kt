@@ -13,6 +13,8 @@ class WebAppConfigTest {
             iconPath = "/data/icons/abc.img", requireUnlock = true, fullscreen = true,
             iconSource = "sorayomi", iconStyle = "white",
             avoidCutout = true, pullToRefresh = false,
+            allowCamera = true, allowMicrophone = true, allowLocation = true,
+            orientation = "landscape",
         )
         val restored = json.decodeFromString<WebAppConfig>(json.encodeToString(WebAppConfig.serializer(), config))
         assertEquals(config, restored)
@@ -27,5 +29,9 @@ class WebAppConfigTest {
         assertEquals("auto", restored.iconStyle)
         assertEquals(false, restored.avoidCutout)
         assertEquals(true, restored.pullToRefresh)
+        assertEquals(false, restored.allowCamera)
+        assertEquals(false, restored.allowMicrophone)
+        assertEquals(false, restored.allowLocation)
+        assertEquals("auto", restored.orientation)
     }
 }

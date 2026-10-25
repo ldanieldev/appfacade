@@ -19,4 +19,28 @@ object Urls {
         if (uri.host.isNullOrEmpty()) return null
         return uri.toString()
     }
+
+    fun matchesAppOrigin(appUrl: String, origin: String?): Boolean {
+        if (origin == null) return false
+        val app = try { URI(appUrl) } catch (e: URISyntaxException) { return false }
+        val other = try { URI(origin) } catch (e: URISyntaxException) { return false }
+        val appScheme = app.scheme?.lowercase() ?: return false
+        val otherScheme = other.scheme?.lowercase() ?: return false
+        val appHost = app.host?.lowercase() ?: return false
+        val otherHost = other.host?.lowercase() ?: return false
+        if (appHost != otherHost) return false
+        val appPort = effectivePort(appScheme, app.port) ?: return false
+        val otherPort = effectivePort(otherScheme, other.port) ?: return false
+        if (appScheme == otherScheme) return appPort == otherPort
+        val upgrade = appScheme == "http" && otherScheme == "https"
+        val portsAligned = (app.port == -1 && other.port == -1) || (app.port != -1 && app.port == other.port)
+        return upgrade && portsAligned
+    }
+
+    private fun effectivePort(scheme: String, port: Int): Int? = when {
+        port != -1 -> port
+        scheme == "http" -> 80
+        scheme == "https" -> 443
+        else -> null
+    }
 }

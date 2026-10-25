@@ -17,6 +17,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ldaniel.appfacade.R
+import com.ldaniel.appfacade.model.SitePermission
 import com.ldaniel.appfacade.model.WebAppConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +44,10 @@ fun ManagerScreen(
     onClearCache: () -> Unit,
     onDeepClean: () -> Unit,
     onDelete: (WebAppConfig) -> Unit,
+    held: Set<SitePermission>,
+    blocked: Set<SitePermission>,
+    onRequestPermission: (SitePermission) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     var confirmDeepClean by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf<WebAppConfig?>(null) }
@@ -56,10 +62,12 @@ fun ManagerScreen(
     ) { padding ->
         if (apps.isEmpty()) {
             Column(Modifier.fillMaxSize().padding(padding)) {
+                SitePermissionsSection(held, blocked, onRequestPermission, onOpenSettings)
                 Text(stringResource(R.string.no_apps_yet), Modifier.padding(24.dp))
             }
         } else {
             LazyColumn(Modifier.fillMaxSize().padding(padding)) {
+                item { SitePermissionsSection(held, blocked, onRequestPermission, onOpenSettings) }
                 items(apps, key = { it.id }) { app ->
                     var menuOpen by remember { mutableStateOf(false) }
                     ListItem(
@@ -125,5 +133,49 @@ fun ManagerScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun SitePermissionsSection(
+    held: Set<SitePermission>,
+    blocked: Set<SitePermission>,
+    onRequestPermission: (SitePermission) -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    Column {
+        Text(
+            stringResource(R.string.site_permissions),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp),
+        )
+        SitePermission.entries.forEach { permission ->
+            ListItem(
+                headlineContent = {
+                    Text(
+                        stringResource(
+                            when (permission) {
+                                SitePermission.CAMERA -> R.string.permission_camera
+                                SitePermission.MICROPHONE -> R.string.permission_microphone
+                                SitePermission.LOCATION -> R.string.permission_location
+                            }
+                        )
+                    )
+                },
+                trailingContent = {
+                    if (permission in held) {
+                        Text(stringResource(R.string.permission_granted))
+                    } else if (permission in blocked) {
+                        TextButton(onClick = onOpenSettings) {
+                            Text(stringResource(R.string.permission_open_settings))
+                        }
+                    } else {
+                        TextButton(onClick = { onRequestPermission(permission) }) {
+                            Text(stringResource(R.string.permission_grant))
+                        }
+                    }
+                },
+            )
+        }
     }
 }

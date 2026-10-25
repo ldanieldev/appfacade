@@ -4,29 +4,35 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.net.Uri
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.webkit.CookieManager
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
+import android.webkit.GeolocationPermissions
+import android.webkit.JavascriptInterface
+import android.webkit.PermissionRequest
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.webkit.WebStorageCompat
 import androidx.webkit.WebViewFeature
+import com.ldaniel.appfacade.model.SitePermission
 
 class WebViewRenderer(
     private val onMainFrameError: (String) -> Unit,
     private val onShowFileChooser: ((ValueCallback<Array<Uri>>, WebChromeClient.FileChooserParams) -> Boolean)? = null,
     private val onShowPopup: PopupPresenter? = null,
-    private val pullToRefresh: Boolean = true,
+    private val onPull: ((progress: Float, refreshing: Boolean) -> Unit)? = null,
     private val onThemeColor: ((Int?) -> Unit)? = null,
+    private val isAllowed: ((SitePermission, origin: String?) -> Boolean)? = null,
 ) : WebRenderer {
 
     private var webView: WebView? = null
-    private var swipe: SwipeRefreshLayout? = null
+    private var refreshing = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun createView(context: Context): View {
@@ -40,10 +46,12 @@ class WebViewRenderer(
             setSupportZoom(true)
             builtInZoomControls = true
             displayZoomControls = false
+            setGeolocationEnabled(true)
         }
         wv.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String) {
-                swipe?.isRefreshing = false
+                endPull()
+                if (onPull != null) view.evaluateJavascript(PULL_PROBE_JS, null)
                 if (onThemeColor != null) {
                     view.evaluateJavascript(
                         "(function(){var m=document.querySelector('meta[name=\"theme-color\"]');return m?m.content:'';})()"
@@ -61,7 +69,7 @@ class WebViewRenderer(
                 error: WebResourceError,
             ) {
                 if (request.isForMainFrame) {
-                    swipe?.isRefreshing = false
+                    endPull()
                     onMainFrameError(error.description.toString())
                 }
             }
@@ -72,6 +80,22 @@ class WebViewRenderer(
                 filePathCallback: ValueCallback<Array<Uri>>,
                 fileChooserParams: FileChooserParams,
             ): Boolean = onShowFileChooser?.invoke(filePathCallback, fileChooserParams) ?: false
+
+            override fun onPermissionRequest(request: PermissionRequest) {
+                val check = isAllowed
+                val origin = request.origin?.toString()
+                val kept = if (check == null) emptyList() else request.resources.filter { r ->
+                    SitePermission.fromWebResource(r)?.let { check(it, origin) } == true
+                }
+                if (kept.isEmpty()) request.deny() else request.grant(kept.toTypedArray())
+            }
+
+            override fun onGeolocationPermissionsShowPrompt(
+                origin: String,
+                callback: GeolocationPermissions.Callback,
+            ) {
+                callback.invoke(origin, isAllowed?.invoke(SitePermission.LOCATION, origin) == true, false)
+            }
 
             @SuppressLint("SetJavaScriptEnabled")
             override fun onCreateWindow(
@@ -102,12 +126,44 @@ class WebViewRenderer(
                 return true
             }
         }
+        if (onPull != null) attachPull(wv, onPull)
         webView = wv
-        return if (!pullToRefresh) wv else SwipeRefreshLayout(context).also { layout ->
-            layout.addView(wv)
-            layout.setOnRefreshListener { wv.reload() }
-            swipe = layout
+        return wv
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun attachPull(wv: WebView, onPull: (Float, Boolean) -> Unit) {
+        val gesture = PullGesture(
+            triggerPx = 120f * wv.resources.displayMetrics.density,
+            slopPx = ViewConfiguration.get(wv.context).scaledTouchSlop.toFloat(),
+        )
+        wv.addJavascriptInterface(object {
+            @JavascriptInterface
+            fun atTop(v: Boolean) { wv.post { gesture.contentAtTop(v) } }
+        }, "AppFacadePull")
+        val report = { p: Float -> if (!refreshing) onPull(p, false) }
+        wv.setOnTouchListener { _, e ->
+            when (e.actionMasked) {
+                MotionEvent.ACTION_DOWN -> gesture.down(e.y)
+                MotionEvent.ACTION_MOVE -> report(gesture.move(e.y, !wv.canScrollVertically(-1)))
+                MotionEvent.ACTION_UP -> if (gesture.up() && !refreshing) {
+                    refreshing = true
+                    onPull(1f, true)
+                    wv.reload()
+                } else report(0f)
+                // A second finger means pinch-zoom; end the pull so a two-finger drag can't reload.
+                MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> {
+                    gesture.cancel()
+                    report(0f)
+                }
+            }
+            false
         }
+    }
+
+    private fun endPull() {
+        refreshing = false
+        onPull?.invoke(0f, false)
     }
 
     override fun loadUrl(url: String) { webView?.loadUrl(url) }
@@ -130,6 +186,8 @@ class WebViewRenderer(
     override fun onDestroy() {
         webView?.destroy()
         webView = null
-        swipe = null
     }
 }
+
+private const val PULL_PROBE_JS =
+    "(function(){if(window.__afPull)return;window.__afPull=1;document.addEventListener('touchstart',function(e){var p=e.composedPath&&e.composedPath(),el=p&&p.length?p[0]:e.target,top=true;while(el&&el!==document.documentElement){if(el.nodeType===1){var o=getComputedStyle(el).overflowY;if((o==='auto'||o==='scroll'||o==='overlay')&&el.scrollHeight>el.clientHeight&&(getComputedStyle(el).flexDirection==='column-reverse'?el.scrollTop>-(el.scrollHeight-el.clientHeight)+1:el.scrollTop>0)){top=false;break;}}el=el.parentNode||el.host;}var r=document.scrollingElement||document.documentElement;if(top&&r&&r.scrollTop>0)top=false;AppFacadePull.atTop(top);},{passive:true,capture:true});})()"
