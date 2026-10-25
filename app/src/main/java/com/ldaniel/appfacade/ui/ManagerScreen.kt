@@ -2,6 +2,7 @@ package com.ldaniel.appfacade.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -66,7 +67,7 @@ fun ManagerScreen(
                 Text(stringResource(R.string.no_apps_yet), Modifier.padding(24.dp))
             }
         } else {
-            LazyColumn(Modifier.fillMaxSize().padding(padding)) {
+            LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(bottom = 88.dp)) {
                 item { SitePermissionsSection(held, blocked, onRequestPermission, onOpenSettings) }
                 items(apps, key = { it.id }) { app ->
                     var menuOpen by remember { mutableStateOf(false) }
