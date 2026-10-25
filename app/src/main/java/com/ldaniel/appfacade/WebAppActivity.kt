@@ -1,8 +1,10 @@
 package com.ldaniel.appfacade
 
+import android.app.ActivityManager
 import android.app.Dialog
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -105,6 +107,11 @@ class WebAppActivity : FragmentActivity() {
         val root = FrameLayout(this)
         lateinit var errorView: ErrorView
         requestedOrientation = WebOrientation.toRequested(config.orientation)
+        // Builder only accepts resource icons; this deprecated ctor is the only public way to pass a bitmap.
+        @Suppress("DEPRECATION")
+        setTaskDescription(
+            ActivityManager.TaskDescription(config.name, config.iconPath?.let { BitmapFactory.decodeFile(it) })
+        )
         val avoidCutout = config.fullscreen && config.avoidCutout
         val pullIndicator = if (config.pullToRefresh) ProgressBar(this).apply {
             isIndeterminate = true
