@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.ldaniel.appfacade"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.ldaniel.appfacade"
